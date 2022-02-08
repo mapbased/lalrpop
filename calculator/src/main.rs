@@ -63,7 +63,7 @@ fn calculator3() {
 }
 
 lalrpop_mod!(pub calculator4);
-pub mod ast;
+mod ast;
 
 #[test]
 fn calculator4() {
@@ -105,24 +105,76 @@ lalrpop_mod!(pub calculator6);
 
 #[test]
 fn calculator6() {
+    // Number is one bigger than std::i32::MAX
+    let expr = calculator6::ExprsParser::new().parse("2147483648");
+    assert!(expr.is_err());
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Calculator6Error {
+    InputTooBig,
+    OddNumber,
+}
+
+lalrpop_mod!(pub calculator6b);
+
+#[test]
+fn calculator6b() {
+    use lalrpop_util::ParseError;
+
+    let expr = calculator6b::ExprsParser::new().parse("2147483648");
+    assert!(expr.is_err());
+    assert_eq!(expr.unwrap_err(), ParseError::User { error: Calculator6Error::InputTooBig });
+
+    let expr = calculator6b::ExprsParser::new().parse("3");
+    assert!(expr.is_err());
+    assert_eq!(expr.unwrap_err(), ParseError::User { error: Calculator6Error::OddNumber });
+}
+
+lalrpop_mod!(pub calculator7);
+
+#[test]
+fn calculator7() {
     let mut errors = Vec::new();
 
-    let expr = calculator6::ExprsParser::new()
+    let expr = calculator7::ExprsParser::new()
         .parse(&mut errors, "22 * + 3")
         .unwrap();
     assert_eq!(&format!("{:?}", expr), "[((22 * error) + 3)]");
 
-    let expr = calculator6::ExprsParser::new()
+    let expr = calculator7::ExprsParser::new()
         .parse(&mut errors, "22 * 44 + 66, *3")
         .unwrap();
     assert_eq!(&format!("{:?}", expr), "[((22 * 44) + 66), (error * 3)]");
 
-    let expr = calculator6::ExprsParser::new()
+    let expr = calculator7::ExprsParser::new()
         .parse(&mut errors, "*")
         .unwrap();
     assert_eq!(&format!("{:?}", expr), "[(error * error)]");
 
     assert_eq!(errors.len(), 4);
+}
+
+lalrpop_mod!(pub calculator8);
+
+#[test]
+fn calculator8() {
+    let scale = 2;
+    let expr = calculator8::ExprParser::new()
+        .parse(scale, "11 * 22 + 33")
+        .unwrap();
+    assert_eq!(&format!("{:?}", expr), "((22 * 44) + 66)");
+}
+
+lalrpop_mod!(pub calculator9);
+pub mod tok9;
+
+#[test]
+fn calculator9() {
+    let input = "22 * pi + 66";
+    let lexer = crate::tok9::Lexer::new(input);
+    let expr = calculator9::ExprParser::new().parse(input, lexer).unwrap();
+    assert_eq!(&format!("{:?}", expr), "((\"22\" * \"pi\") + \"66\")");
 }
 
 #[cfg(not(test))]
